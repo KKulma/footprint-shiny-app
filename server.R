@@ -8,6 +8,28 @@ library(geosphere)
 
 server <- function(input, output) { 
   
+  
+  
+  # emissions text ----
+  
+  output$distance <- renderText({
+    
+    departure <- input$outbound
+    arrival <- input$inbound
+    dist <- airportr::airport_distance(input$inbound, input$outbound)
+    estimate <- footprint::airport_footprint(input$inbound, input$outbound, input$class, input$metric)
+    estimate <- footprint::airport_footprint(input$inbound, input$outbound, input$class, input$metric)
+    
+    HTML(paste("<b>", departure, "</b> to <b>", arrival, "</b>", "Estimated Emissions: <br>",
+        "<span style='font-size: 160%; color: #3f9323;'><b>", estimate, "</b></span>", input$metric))
+  })
+  
+  # emissions chart ----
+  
+  
+  
+  # map -----
+  
   coord_data <- eventReactive(input$go,{
   
   lat_inbound <- airportr::airport_location(input$inbound) %>%

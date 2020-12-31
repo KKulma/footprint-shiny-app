@@ -1,6 +1,7 @@
 library(shinydashboard)
 library(leaflet)
 library(footprint)
+library(shiny)
 
 dashboardPage(
   skin = "black",
@@ -34,7 +35,11 @@ dashboardPage(
                        ))
       ),
       column(
-        6, selectInput("metric", "Footprint metric", c("co2e", "co2", "ch4", "n2o"))
+        6, selectInput("metric", "Footprint metric*", 
+                       c("CO2e - Carbon Dioxide Equivalent" = "co2e",
+                         "CO2 - Carbon Dioxide" = "co2", 
+                         "CH4 - Methane" = "ch4",
+                         "N2O - Nitrous Oxide" = "n2o"))
       ))
     ),
     conditionalPanel(
@@ -56,10 +61,19 @@ dashboardPage(
         6, actionButton(inputId = "go", label = "Go!"),
       )
     ),
-    fluidRow(),
+    fluidRow(
+      column(6,
+             htmlOutput("distance"),
+             HTML("<br/>")),
+    ),
     fluidRow(
       leafletOutput("map")
-    )
+    ),
+    fluidRow(
+      column(
+        6,
+        p("* All estimates include radiative forcing")
+      )
     
   )
-)
+))
