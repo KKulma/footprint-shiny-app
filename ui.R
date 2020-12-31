@@ -1,8 +1,26 @@
+library(shiny)
 library(shinydashboard)
+library(tidyverse)
 library(leaflet)
 library(footprint)
-library(shiny)
+library(airportr)
+library(geosphere)
+library(maps)
 library(dqshiny)
+
+# list of airports ----
+
+airports <- airportr::airports %>%
+  select(IATA, Name) %>%
+  mutate(name2 = paste(IATA, " - ", Name)) %>%
+  select(name2) %>% pull()
+
+# list of cities ----
+
+citydata <- maps::world.cities %>%
+  mutate(name2 = paste(name, ", ", country.etc)) %>%
+  select(name2) %>% pull()
+
 
 dashboardPage(
   skin = "black",
@@ -21,13 +39,11 @@ dashboardPage(
     conditionalPanel(
       "input.category == 'iata'",
       fluidRow(
-        column(
-        4,
-        selectInput("outbound", "Departure Airport", c("LHR", "TYS", "LAX"))
+        column(4,
+               autocomplete_input("departure", "Departure Airport:", airports, max_options = 5)),
+        column(4,
+               autocomplete_input("arrival", "Arrival Airport:", airports, max_options = 5))
       ),
-      column(
-        4, selectInput("inbound", "Arrival Airport", c("LHR", "TYS", "LAX"))
-      )),
       fluidRow(column(
         4, selectInput("class",
                        "Flight Class",
@@ -62,9 +78,9 @@ dashboardPage(
       "input.category == 'city'",
       fluidRow(
         column(4,
-               autocomplete_input("city1", "Departure City:", data, max_options = 5)),
+               autocomplete_input("city1", "Departure City:", citydata, max_options = 5)),
                column(4,
-                      autocomplete_input("city2", "Arrival City:", data, max_options = 5)
+                      autocomplete_input("city2", "Arrival City:", citydata, max_options = 5)
                ))),
     fluidRow(
       column(

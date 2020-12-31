@@ -10,19 +10,17 @@ library(dqshiny)
 
 server <- function(input, output) { 
   
-  # list of cities ----
-  
-  data <- maps::world.cities %>%
-    mutate(name2 = paste(name, ", ", country.etc)) %>%
-      select(name2) %>% pull()
+
+  # emissions calculation based on airport input ----
   
   emissions_text <- eventReactive(input$go, {
-    departure <- input$outbound
-    arrival <- input$inbound
-    dist <- airportr::airport_distance(input$inbound, input$outbound)
-    estimate <- footprint::airport_footprint(input$inbound, input$outbound, input$class, input$metric)
+    departure <- word(input$departure,1)
+    arrival <- word(input$arrival,1)
+    distance <- airportr::airport_distance(arrival, departure) %>% 
+      round(2)
+    estimate <- footprint::airport_footprint(arrival, departure, input$class, input$metric)
     
-    HTML(paste("<b>", departure, "</b> to <b>", arrival, "</b>", "Estimated Emissions: <br>",
+    HTML(paste("<b>", departure, "</b> to <b>", arrival, "</b> (", distance, "km) Estimated Emissions: <br>",
                "<span style='font-size: 160%; color: #3f9323;'><b>", estimate, "</b></span>", input$metric))
   })
   
@@ -31,17 +29,20 @@ server <- function(input, output) {
   })
 
   
-  # map -----
+  # map based on airport input -----
   
   coord_data <- eventReactive(input$go,{
+    
+    departure <- word(input$departure,1)
+    arrival <- word(input$arrival,1)
   
-  lat_inbound <- airportr::airport_location(input$inbound) %>%
+  lat_inbound <- airportr::airport_location(arrival) %>%
     pull(Latitude)
-  long_inbound <- airportr::airport_location(input$inbound) %>%
+  long_inbound <- airportr::airport_location(arrival) %>%
     pull(Longitude)
-  lat_outbound <- airportr::airport_location(input$outbound) %>%
+  lat_outbound <- airportr::airport_location(departure) %>%
     pull(Latitude)
-  long_outbound <- airportr::airport_location(input$outbound) %>%
+  long_outbound <- airportr::airport_location(departure) %>%
     pull(Longitude)
   
   coord_data <- gcIntermediate(c(long_inbound, 
