@@ -60,8 +60,8 @@ server <- function(input, output) {
   output$map <- renderLeaflet({
     coord_data() %>% 
     leaflet() %>% 
-    addTiles() %>% 
-    addPolylines()
+      addTiles(urlTemplate = "https://tile.jawg.io/jawg-dark/{z}/{x}/{y}.png?access-token=qk8Kpqcfoxfg04BI5egRq7tjX8COTiywPrjB2VYrxWQhtWRgnNhmWT3gCEDuobim") %>% 
+      addPolylines(color = "#6edf49")
   })
   
   }
