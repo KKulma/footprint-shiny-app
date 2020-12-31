@@ -51,7 +51,8 @@ server <- function(input, output) {
                                             lat_outbound),
                                           n=100, 
                                           addStartEnd=TRUE,
-                                          sp=TRUE)
+                                          sp=TRUE,
+                                          breakAtDateLine = T)
   })
   
   
