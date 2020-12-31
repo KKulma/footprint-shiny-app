@@ -10,14 +10,9 @@ dashboardPage(
     fluidRow(
       radioButtons(
         inputId = "category",
-        label = "How to specify airports?",
-        choices = c(IATA = "iata", Coordinates = "coord"),
+        label = "Input Type:",
+        choices = c("IATA Airport Code" = "iata", Coordinates = "coord"),
         inline = TRUE
-      )
-    ),
-    fluidRow(
-      column(
-        6, actionButton(inputId = "go", label = "Go!"),
       )
     ),
     conditionalPanel(
@@ -56,6 +51,12 @@ dashboardPage(
         ))
       )
     ),
+    fluidRow(
+      column(
+        6, actionButton(inputId = "go", label = "Go!"),
+      )
+    ),
+    fluidRow(),
     fluidRow(
       leafletOutput("map")
     )
