@@ -1,56 +1,105 @@
-library(shinydashboard)
-library(leaflet)
+# list of airports ----
+
+airports <- airportr::airports %>%
+  select(IATA, Name) %>%
+  mutate(name2 = paste(IATA, " - ", Name)) %>%
+  select(name2) %>% pull()
+
+# list of cities ----
+
+citydata <- maps::world.cities %>%
+  mutate(name2 = paste(name, ", ", country.etc)) %>%
+  select(name2) %>% pull()
+
 
 dashboardPage(
   skin = "black",
-  dashboardHeader(title = "Flight Footprint"),
+  dashboardHeader(title = "Flight Footprint Calculator"),
   dashboardSidebar(disable = TRUE),
   dashboardBody(
     fluidRow(
       radioButtons(
         inputId = "category",
-        label = "How to specify airports?",
-        choices = c(IATA = "iata", Coordinates = "coord"),
+        label = "Input Type:",
+        choices = c(
+          "IATA Airport Code" = "iata",
+          Coordinates = "coord",
+          City = "city"
+        ),
         inline = TRUE
       )
     ),
     conditionalPanel(
       "input.category == 'iata'",
+      fluidRow(
+        column(
+          4,
+          dqshiny::autocomplete_input("departure", "Departure Airport:", airports, max_options = 5)
+        ),
+        column(
+          4,
+          dqshiny::autocomplete_input("arrival", "Arrival Airport:", airports, max_options = 5)
+        )
+      ),
       fluidRow(column(
-        6,
-        selectInput("outbound", "Departure Airport", c("AAA", "BBB", "CCC"))
+        4, selectInput(
+          "class",
+          "Flight Class",
+          c("Economy", "Economy+", "Business",
+            "First", "Unknown")
+        )
       ),
       column(
-        6, selectInput("inbound", "Arrival Airport", c("AAA", "BBB", "CCC"))
-      )),
-      
-      fluidRow(column(
-        6, selectInput("class",
-                       "Flight Class",
-                       sort(
-                         c("Unknown", "Economy", "Economy+", "Business", "First")
-                       ))
-      ),
-      column(
-        6, selectInput("metric", "Footprint metric", c("co2e", "co2", "ch4", "n2o"))
+        4, selectInput(
+          "metric",
+          "Footprint metric*",
+          c(
+            "CO2e - Carbon Dioxide Equivalent" = "co2e",
+            "CO2 - Carbon Dioxide" = "co2",
+            "CH4 - Methane" = "ch4",
+            "N2O - Nitrous Oxide" = "n2o"
+          )
+        )
       ))
     ),
     conditionalPanel(
       "input.category == 'coord'",
-      fluidRow(
-        column(6, numericInput("inlat", "Inbound Latittude", value = 0)),
-        column(6, numericInput("inlong", "Inbound Longitude", value = 0)),
-        fluidRow(column(
-          6, numericInput("outlat", "Outbound Latittude", value = 0)
-        ),
-        column(
-          6, numericInput("outlong", "Outbound Longitude", value = 0)
-        ))
-      )
+      fluidRow(column(
+        4, numericInput("inlat", "Inbound Latittude", value = 0)
+      ),
+      column(
+        4, numericInput("inlong", "Outbound Longitude", value = 0)
+      )),
+      fluidRow(column(
+        4, numericInput("outlat", "Outbound Latittude", value = 0)
+      ),
+      column(
+        4, numericInput("outlong", "Outbound Longitude", value = 0)
+      ))
     ),
+    conditionalPanel("input.category == 'city'",
+                     fluidRow(
+                       column(
+                         4,
+                         dqshiny::autocomplete_input("city1", "Departure City:", citydata, max_options = 5)
+                       ),
+                       column(
+                         4,
+                         dqshiny::autocomplete_input("city2", "Arrival City:", citydata, max_options = 5)
+                       )
+                     )),
+    fluidRow(column(
+      6, actionButton(inputId = "go", label = "Go!"),
+    )),
     fluidRow(
-      leafletOutput("map")
-    )
-    
+      shiny::HTML("<div align='center'>"),
+      htmlOutput("emissions"),
+      shiny::HTML("</div>")
+    ),
+    fluidRow(leaflet::leafletOutput("map")),
+    fluidRow(column(
+      6,
+      shiny::p("* All estimates include radiative forcing")
+    ))
   )
 )
