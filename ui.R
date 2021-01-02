@@ -11,12 +11,16 @@ citydata <- maps::world.cities %>%
   mutate(name2 = paste(name, ", ", country.etc)) %>%
   select(name2) %>% pull()
 
+# begin dashboard ----
 
 dashboardPage(
   skin = "black",
   dashboardHeader(title = "Flight Footprint Calculator"),
   dashboardSidebar(disable = TRUE),
   dashboardBody(
+    tags$head(
+      tags$link(rel = "stylesheet", type = "text/css", href = "custom.css")
+    ),
     fluidRow(
       radioButtons(
         inputId = "category",
@@ -91,15 +95,22 @@ dashboardPage(
     fluidRow(column(
       6, actionButton(inputId = "go", label = "Go!"),
     )),
+    # float emissions over map ----
     fluidRow(
-      shiny::HTML("<div align='center'>"),
-      htmlOutput("emissions"),
-      shiny::HTML("</div>")
+      column(6,
+      shiny::HTML("<div class='floatcontainer'>"),
+          shiny::HTML("<div class='box' style='background: black;'>"),
+            leaflet::leafletOutput("map"),
+          shiny::HTML("</div>"), #box div
+          shiny::HTML("<div class='box stack-top' style='background: white;'>"),
+            htmlOutput("emissions"),
+          shiny::HTML("</div>"), #stack-top div
+      shiny::HTML("</div>")), #container div
+      column(6,
+             shiny::p("Equivalents"))
     ),
-    fluidRow(leaflet::leafletOutput("map")),
-    fluidRow(column(
-      6,
+    fluidRow(
       shiny::p("* All estimates include radiative forcing")
-    ))
+    )
   )
 )
