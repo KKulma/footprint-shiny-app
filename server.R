@@ -61,10 +61,18 @@ server <- function(input, output) {
   
   
   output$map <- renderLeaflet({
-    coord_data() %>%
-      leaflet() %>%
-      addTiles(urlTemplate = "https://tile.jawg.io/jawg-dark/{z}/{x}/{y}.png?access-token=qk8Kpqcfoxfg04BI5egRq7tjX8COTiywPrjB2VYrxWQhtWRgnNhmWT3gCEDuobim") %>%
-      addPolylines(color = "#6edf49")
+    if (input$go == 0) {
+      m <-  leaflet(
+        options = leafletOptions(minZoom = 3, maxZoom = 9)
+      ) %>%
+        addTiles(urlTemplate = "https://tile.jawg.io/jawg-dark/{z}/{x}/{y}.png?access-token=qk8Kpqcfoxfg04BI5egRq7tjX8COTiywPrjB2VYrxWQhtWRgnNhmWT3gCEDuobim") 
+    } else {
+      m <- coord_data() %>%
+        leaflet() %>%
+        addTiles(urlTemplate = "https://tile.jawg.io/jawg-dark/{z}/{x}/{y}.png?access-token=qk8Kpqcfoxfg04BI5egRq7tjX8COTiywPrjB2VYrxWQhtWRgnNhmWT3gCEDuobim") %>%
+        addPolylines(color = "#6edf49")
+    }
+    m
   })
   
 }
