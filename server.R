@@ -1,51 +1,102 @@
 server <- function(input, output) {
   
+  inserted <- c()
+  
+  observeEvent(input$insertBtn, {
+    
+    airports <- airportr::airports %>%
+      select(IATA, Name) %>%
+      mutate(name2 = paste(IATA, " - ", Name)) %>%
+      select(name2) %>% pull()
+    
+    btn <- input$insertBtn
+    id <- paste0('txt', btn)
+    departure_id <- paste0("departure_", btn)
+    arrival_id <- paste0("arrival_", btn)
+    insertUI(
+      selector = '#placeholder',
+      ## wrap element in a div with id for ease of removal
+      ui = tags$div(
+        fluidRow(
+        column(
+          6,
+          dqshiny::autocomplete_input(departure_id, "Departure Airport:", airports, max_options = 5, contains = TRUE)
+        ),
+        column(
+          6,
+          dqshiny::autocomplete_input(arrival_id, "Arrival Airport:", airports, max_options = 5, contains = TRUE)
+        ),
+      ),
+      id = id)
+    )
+    inserted <<- c(id, inserted)
+  })
+  
+  observeEvent(input$removeBtn, {
+    removeUI(
+      ## pass in appropriate div id
+      selector = paste0('#', inserted[length(inserted)])
+    )
+    inserted <<- inserted[-length(inserted)]
+  })
+  
+  
   # map emissions text ----
   
   emissions_text <- eventReactive(input$go, {
     
     # emissions calculation based on airport input ----
-    if(input$category == "iata"){
     departure <- stringr::word(input$departure, 1)
     arrival <- stringr::word(input$arrival, 1)
-    distance <- airportr::airport_distance(arrival, departure) %>%
-      round(2)
+    
+    trip_df <- dplyr::tibble(dep = departure,
+                             arr = arrival)
+    
+    # # FIX not working... - need to remove input if remove button hit
+    btn <- input$insertBtn
+    if(btn > 0){
+      
+    for(i in 1:btn){
+
+        dept <- input[[paste0("departure_", i)]]
+        arrv <- input[[paste0("arrival_", i)]]
+        
+        tmp <- dplyr::tibble(dep = stringr::word(dept, 1),
+                             arr = stringr::word(arrv, 1))
+  
+        trip_df <- trip_df %>%
+          add_row(tmp)
+  
+    }
+      
+      estimate <- trip_df %>%
+        rowwise() %>%
+        mutate(emissions = footprint::airport_footprint(arr, dep, input$class, input$metric)) %>%
+        ungroup() %>%
+        summarize(emissions = sum(emissions)) %>%
+        pull()
+
+    } else {
+    
     estimate <-
       footprint::airport_footprint(arrival, departure, input$class, input$metric)
     
-    # emissions calculation based on city input ----
-  } else if(input$category == "city") {
-      departure_lat <- maps::world.cities %>%
-        mutate(name2 = paste(name, ", ", country.etc)) %>%
-        filter(name2 == input$city1) %>%
-        pull(lat)
-      departure_long <- maps::world.cities %>%
-        mutate(name2 = paste(name, ", ", country.etc)) %>%
-        filter(name2 == input$city1) %>%
-        pull(long)
-      arrival_lat <- maps::world.cities %>%
-        mutate(name2 = paste(name, ", ", country.etc)) %>%
-        filter(name2 == input$city2) %>%
-        pull(lat)
-      arrival_long <- maps::world.cities %>%
-        mutate(name2 = paste(name, ", ", country.etc)) %>%
-        filter(name2 == input$city2) %>%
-        pull(long)
-      distance <- distance_calc(departure_long, departure_lat,
-                                arrival_long, arrival_lat) %>%
-        round(2)
-      estimate <-
-        footprint::latlong_footprint(departure_lat, departure_long,
-                                     arrival_lat, arrival_long,
-                                     input$class, input$metric)
-  }
+    }
+    
+    distance <- airportr::airport_distance(arrival, departure) %>%
+      round(2)
+    
+    if(input$trip_type == "roundtrip"){
+      estimate <- estimate*2
+    } else {estimate}
+    
       HTML(
         paste(
           "Estimated Emissions: <br>",
           "<span style='font-size: 160%; color: #3f9323;'><b>",
           estimate,
           "</b></span> kg",
-          input$metric
+          input$metric, trip_df
         ))
   })
   
@@ -58,7 +109,6 @@ server <- function(input, output) {
   
   coord_data <- eventReactive(input$go, {
     
-    if(input$category == "iata"){
       
     departure <- word(input$departure, 1)
     arrival <- word(input$arrival, 1)
@@ -72,25 +122,6 @@ server <- function(input, output) {
     long_outbound <- airportr::airport_location(departure) %>%
       pull(Longitude)
     
-    } else if(input$category == "city") {
-      lat_outbound <- maps::world.cities %>%
-        mutate(name2 = paste(name, ", ", country.etc)) %>%
-        filter(name2 == input$city1) %>%
-        pull(lat)
-      long_outbound <- maps::world.cities %>%
-        mutate(name2 = paste(name, ", ", country.etc)) %>%
-        filter(name2 == input$city1) %>%
-        pull(long)
-      lat_inbound <- maps::world.cities %>%
-        mutate(name2 = paste(name, ", ", country.etc)) %>%
-        filter(name2 == input$city2) %>%
-        pull(lat)
-      long_inbound <- maps::world.cities %>%
-        mutate(name2 = paste(name, ", ", country.etc)) %>%
-        filter(name2 == input$city2) %>%
-        pull(long)
-      
-    }
     
     coord_data <- gcIntermediate(
       c(long_inbound,
@@ -116,37 +147,16 @@ server <- function(input, output) {
   
   carbon_budget_text <- eventReactive(input$go, {
     
-    # emissions calculation based on airport input ----
-    if(input$category == "iata"){
       departure <- stringr::word(input$departure, 1)
       arrival <- stringr::word(input$arrival, 1)
       estimate <-
         footprint::airport_footprint(arrival, departure, input$class, input$metric)
-      
-      # emissions calculation based on city input ----
-    } else if(input$category == "city") {
-      departure_lat <- maps::world.cities %>%
-        mutate(name2 = paste(name, ", ", country.etc)) %>%
-        filter(name2 == input$city1) %>%
-        pull(lat)
-      departure_long <- maps::world.cities %>%
-        mutate(name2 = paste(name, ", ", country.etc)) %>%
-        filter(name2 == input$city1) %>%
-        pull(long)
-      arrival_lat <- maps::world.cities %>%
-        mutate(name2 = paste(name, ", ", country.etc)) %>%
-        filter(name2 == input$city2) %>%
-        pull(lat)
-      arrival_long <- maps::world.cities %>%
-        mutate(name2 = paste(name, ", ", country.etc)) %>%
-        filter(name2 == input$city2) %>%
-        pull(long)
-      estimate <-
-        footprint::latlong_footprint(departure_lat, departure_long,
-                                     arrival_lat, arrival_long,
-                                    input$class, "co2e")
-    }
     
+      
+      if(input$trip_type == "roundtrip"){
+        estimate <- estimate*2
+      } else {estimate}
+      
     pct <- scales::percent(round((estimate/1000)/4.8,3))
     
     HTML(
@@ -167,37 +177,16 @@ server <- function(input, output) {
   
   ice_melt_text <- eventReactive(input$go, {
     
-    # emissions calculation based on airport input ----
-    if(input$category == "iata"){
       departure <- stringr::word(input$departure, 1)
       arrival <- stringr::word(input$arrival, 1)
       estimate <-
         footprint::airport_footprint(arrival, departure, input$class, input$metric)
-      
-      # emissions calculation based on city input ----
-    } else if(input$category == "city") {
-      departure_lat <- maps::world.cities %>%
-        mutate(name2 = paste(name, ", ", country.etc)) %>%
-        filter(name2 == input$city1) %>%
-        pull(lat)
-      departure_long <- maps::world.cities %>%
-        mutate(name2 = paste(name, ", ", country.etc)) %>%
-        filter(name2 == input$city1) %>%
-        pull(long)
-      arrival_lat <- maps::world.cities %>%
-        mutate(name2 = paste(name, ", ", country.etc)) %>%
-        filter(name2 == input$city2) %>%
-        pull(lat)
-      arrival_long <- maps::world.cities %>%
-        mutate(name2 = paste(name, ", ", country.etc)) %>%
-        filter(name2 == input$city2) %>%
-        pull(long)
-      estimate <-
-        footprint::latlong_footprint(departure_lat, departure_long,
-                                     arrival_lat, arrival_long,
-                                     input$class, "co2")
-    }
     
+      
+      if(input$trip_type == "roundtrip"){
+        estimate <- estimate*2
+      } else {estimate}
+      
     ice <- round((estimate/1000)*3,2)
     
     HTML(
@@ -216,37 +205,17 @@ server <- function(input, output) {
   # tree planting ----
   
   tree_text <- eventReactive(input$go, {
-    
-    # emissions calculation based on airport input ----
-    if(input$category == "iata"){
+  
       departure <- stringr::word(input$departure, 1)
       arrival <- stringr::word(input$arrival, 1)
       estimate <-
         footprint::airport_footprint(arrival, departure, input$class, input$metric)
       
-      # emissions calculation based on city input ----
-    } else if(input$category == "city") {
-      departure_lat <- maps::world.cities %>%
-        mutate(name2 = paste(name, ", ", country.etc)) %>%
-        filter(name2 == input$city1) %>%
-        pull(lat)
-      departure_long <- maps::world.cities %>%
-        mutate(name2 = paste(name, ", ", country.etc)) %>%
-        filter(name2 == input$city1) %>%
-        pull(long)
-      arrival_lat <- maps::world.cities %>%
-        mutate(name2 = paste(name, ", ", country.etc)) %>%
-        filter(name2 == input$city2) %>%
-        pull(lat)
-      arrival_long <- maps::world.cities %>%
-        mutate(name2 = paste(name, ", ", country.etc)) %>%
-        filter(name2 == input$city2) %>%
-        pull(long)
-      estimate <-
-        footprint::latlong_footprint(departure_lat, departure_long,
-                                     arrival_lat, arrival_long,
-                                     input$class, "co2")
-    }
+      
+      if(input$trip_type == "roundtrip"){
+        estimate <- estimate*2
+      } else {estimate}
+      
     
     trees <- round((estimate/1000)/.06)
     

@@ -5,12 +5,6 @@ airports <- airportr::airports %>%
   mutate(name2 = paste(IATA, " - ", Name)) %>%
   select(name2) %>% pull()
 
-# list of cities ----
-
-citydata <- maps::world.cities %>%
-  mutate(name2 = paste(name, ", ", country.etc)) %>%
-  select(name2) %>% pull()
-
 # distance function ----
 distance_calc <- function(departure_long, departure_lat, 
                      arrival_long, arrival_lat){
@@ -31,7 +25,7 @@ distance_calc <- function(departure_long, departure_lat,
 
 dashboardPage(
   skin = "black",
-  dashboardHeader(title = "Air Travel Footprint Calculator"),
+  dashboardHeader(title = "Air Travel Carbon Footprint Calculator"),
   dashboardSidebar(disable = TRUE),
   dashboardBody(
     tags$head(
@@ -39,80 +33,52 @@ dashboardPage(
     ),
     fluidRow(
       radioButtons(
-        inputId = "category",
-        label = "Input Type:",
+        inputId = "trip_type",
+        label = NULL,
         choices = c(
-          "IATA Airport Code" = "iata",
-          City = "city"
+          "Round Trip" = "roundtrip",
+          "One Way" = "oneway"
           #Coordinates = "coord"
         ),
         inline = TRUE
       )
     ),
-    conditionalPanel(
-      "input.category == 'iata'",
       fluidRow(
         column(
           4,
-          dqshiny::autocomplete_input("departure", "Departure Airport:", airports, max_options = 5)
+          dqshiny::autocomplete_input("departure", "Departure Airport:", airports, max_options = 5, contains = TRUE)
         ),
         column(
           4,
-          dqshiny::autocomplete_input("arrival", "Arrival Airport:", airports, max_options = 5)
+          dqshiny::autocomplete_input("arrival", "Arrival Airport:", airports, max_options = 5, contains = TRUE)
         )
       ),
-      fluidRow(column(
-        4, selectInput(
-          "class",
-          "Flight Class",
-          c("Economy", "Economy+", "Business",
-            "First", "Unknown")
-        )
-      ),
-      column(
-        4, selectInput(
-          "metric",
-          "Footprint metric*",
-          c(
-            "CO2e - Carbon Dioxide Equivalent" = "co2e",
-            "CO2 - Carbon Dioxide" = "co2",
-            "CH4 - Methane" = "ch4",
-            "N2O - Nitrous Oxide" = "n2o"
-          )
-        )
-      ))
+    fluidRow(column(
+      6,
+      actionButton('insertBtn', 'Add Leg'), 
+      actionButton('removeBtn', 'Remove Leg'), 
+      tags$div(id = 'placeholder') 
+    )),
+    fluidRow(column(
+      4, selectInput(
+        "class",
+        "Flight Class",
+        c("Economy", "Economy+", "Business",
+          "First", "Unknown")
+      )
     ),
-    conditionalPanel("input.category == 'city'",
-                     fluidRow(
-                       column(
-                         4,
-                         dqshiny::autocomplete_input("city1", "Departure City:", citydata, max_options = 5)
-                       ),
-                       column(
-                         4,
-                         dqshiny::autocomplete_input("city2", "Arrival City:", citydata, max_options = 5)
-                       )
-                     ),
-                     fluidRow(column(
-                       4, selectInput(
-                         "class",
-                         "Flight Class",
-                         c("Economy", "Economy+", "Business",
-                           "First", "Unknown")
-                       )
-                     ),
-                     column(
-                       4, selectInput(
-                         "metric",
-                         "Footprint metric*",
-                         c(
-                           "CO2e - Carbon Dioxide Equivalent" = "co2e",
-                           "CO2 - Carbon Dioxide" = "co2",
-                           "CH4 - Methane" = "ch4",
-                           "N2O - Nitrous Oxide" = "n2o"
-                         )
-                       )
-                     ))),
+    column(
+      4, selectInput(
+        "metric",
+        "Footprint metric*",
+        c(
+          "CO2e - Carbon Dioxide Equivalent" = "co2e",
+          "CO2 - Carbon Dioxide" = "co2",
+          "CH4 - Methane" = "ch4",
+          "N2O - Nitrous Oxide" = "n2o"
+        )
+      )
+    )),
     # conditionalPanel(
     #   "input.category == 'coord'",
     #   fluidRow(column(
