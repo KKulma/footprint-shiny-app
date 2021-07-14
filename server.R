@@ -1,47 +1,6 @@
 server <- function(input, output) {
   
-  inserted <- c()
-  
-  observeEvent(input$insertBtn, {
-    
-    airports <- airportr::airports %>%
-      select(IATA, Name) %>%
-      mutate(name2 = paste(IATA, " - ", Name)) %>%
-      select(name2) %>% pull()
-    
-    btn <- input$insertBtn
-    id <- paste0('txt', btn)
-    departure_id <- paste0("departure_", btn)
-    arrival_id <- paste0("arrival_", btn)
-    insertUI(
-      selector = '#placeholder',
-      ## wrap element in a div with id for ease of removal
-      ui = tags$div(
-        fluidRow(
-        column(
-          6,
-          dqshiny::autocomplete_input(departure_id, "Departure Airport:", airports, max_options = 5, contains = TRUE)
-        ),
-        column(
-          6,
-          dqshiny::autocomplete_input(arrival_id, "Arrival Airport:", airports, max_options = 5, contains = TRUE)
-        ),
-      ),
-      id = id)
-    )
-    inserted <<- c(id, inserted)
-  })
-  
-  observeEvent(input$removeBtn, {
-    removeUI(
-      ## pass in appropriate div id
-      selector = paste0('#', inserted[length(inserted)])
-    )
-    inserted <<- inserted[-length(inserted)]
-  })
-  
-  
-  # map emissions text ----
+   # emissions text for map ----
   
   emissions_text <- eventReactive(input$go, {
     
@@ -49,54 +8,28 @@ server <- function(input, output) {
     departure <- stringr::word(input$departure, 1)
     arrival <- stringr::word(input$arrival, 1)
     
-    trip_df <- dplyr::tibble(dep = departure,
-                             arr = arrival)
-    
-    # # FIX not working... - need to remove input if remove button hit
-    btn <- input$insertBtn
-    if(btn > 0){
-      
-    for(i in 1:btn){
-
-        dept <- input[[paste0("departure_", i)]]
-        arrv <- input[[paste0("arrival_", i)]]
-        
-        tmp <- dplyr::tibble(dep = stringr::word(dept, 1),
-                             arr = stringr::word(arrv, 1))
-  
-        trip_df <- trip_df %>%
-          add_row(tmp)
-  
-    }
-      
-      estimate <- trip_df %>%
-        rowwise() %>%
-        mutate(emissions = footprint::airport_footprint(arr, dep, input$class, input$metric)) %>%
-        ungroup() %>%
-        summarize(emissions = sum(emissions)) %>%
-        pull()
-
-    } else {
-    
-    estimate <-
-      footprint::airport_footprint(arrival, departure, input$class, input$metric)
-    
-    }
+    estimate <- footprint::airport_footprint(arrival, 
+                departure, input$class, input$metric) %>%
+      round(2)
     
     distance <- airportr::airport_distance(arrival, departure) %>%
       round(2)
     
     if(input$trip_type == "roundtrip"){
       estimate <- estimate*2
-    } else {estimate}
+      distance <- distance*2
+    } else {
+      estimate
+      }
     
       HTML(
         paste(
-          "Estimated Emissions: <br>",
+          "Estimated Emissions: (", distance, "km", 
+          input$trip_type, ")<br>",
           "<span style='font-size: 160%; color: #3f9323;'><b>",
           estimate,
           "</b></span> kg",
-          input$metric, trip_df
+          input$metric
         ))
   })
   

@@ -54,12 +54,6 @@ dashboardPage(
         )
       ),
     fluidRow(column(
-      6,
-      actionButton('insertBtn', 'Add Leg'), 
-      actionButton('removeBtn', 'Remove Leg'), 
-      tags$div(id = 'placeholder') 
-    )),
-    fluidRow(column(
       4, selectInput(
         "class",
         "Flight Class",
@@ -79,21 +73,6 @@ dashboardPage(
         )
       )
     )),
-    # conditionalPanel(
-    #   "input.category == 'coord'",
-    #   fluidRow(column(
-    #     4, numericInput("inlat", "Inbound Latittude", value = 0)
-    #   ),
-    #   column(
-    #     4, numericInput("inlong", "Outbound Longitude", value = 0)
-    #   )),
-    #   fluidRow(column(
-    #     4, numericInput("outlat", "Outbound Latittude", value = 0)
-    #   ),
-    #   column(
-    #     4, numericInput("outlong", "Outbound Longitude", value = 0)
-    #   ))
-    # ),
     fluidRow(column(
       6, actionButton(inputId = "go", label = "Go!"),
     )),
